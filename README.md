@@ -531,7 +531,6 @@ To get this to work
 4. Configure an IAM role with appropriate claim limits and permission scope.
 
    _Note_: Naming your role "GitHubActions" has been reported to not work. See
-   [#953](https://github.com/step-security/configure-aws-credentials/issues/953).
 
 5. Specify that role's ARN when setting up this action.
 

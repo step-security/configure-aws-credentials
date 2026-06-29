@@ -6,8 +6,8 @@ jobs:
   sast-guard:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
-    - uses: grolston/guard-action@main
+    - uses: actions/checkout@v7
+    - uses: grolston/guard-action@v1
       with:
         data_directory: './cloudformation/' ## change to your template directory
         rule_set: 'FedRAMP-Moderate'

@@ -7,6 +7,7 @@ import {
   STSClient,
 } from '@aws-sdk/client-sts';
 import { mockClient } from 'aws-sdk-client-mock';
+import axios from 'axios';
 import { fs, vol } from 'memfs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CredentialsClient } from '../src/CredentialsClient';
@@ -17,6 +18,7 @@ import mocks from './mockinputs.test';
 
 vi.mock('@actions/core');
 vi.mock('node:fs');
+vi.mock('axios');
 
 const mockedSTSClient = mockClient(STSClient);
 
@@ -26,6 +28,7 @@ describe('Configure AWS Credentials', {}, () => {
     mockedSTSClient.reset();
     vi.mocked(core.getInput).mockReturnValue('');
     vi.mocked(core.getMultilineInput).mockReturnValue([]);
+    vi.mocked(axios.post).mockResolvedValue({});
     // Inject no-op sleep to avoid real delays during retries in tests
     helpers.withsleep(() => Promise.resolve());
     // Remove any existing environment variables before each test to prevent the
@@ -50,7 +53,7 @@ describe('Configure AWS Credentials', {}, () => {
       await run();
       expect(core.info).toHaveBeenCalledWith('Assuming role with OIDC');
       expect(core.info).toHaveBeenCalledWith('Authenticated as assumedRoleId AROAFAKEASSUMEDROLEID');
-      expect(core.info).toHaveBeenCalledTimes(2);
+      expect(core.info).toHaveBeenCalledTimes(7);
       expect(core.setOutput).toHaveBeenCalledWith('aws-account-id', '111111111111');
       expect(core.setOutput).toHaveBeenCalledTimes(2);
       expect(core.setSecret).toHaveBeenCalledWith('STSAWSACCESSKEYID');
@@ -74,7 +77,7 @@ describe('Configure AWS Credentials', {}, () => {
       expect(core.info).toHaveBeenCalledWith('Assuming role with OIDC');
       expect(core.info).toHaveBeenCalledWith('Assuming role with OIDC');
       expect(core.info).toHaveBeenCalledWith('Authenticated as assumedRoleId AROAFAKEASSUMEDROLEID');
-      expect(core.info).toHaveBeenCalledTimes(3);
+      expect(core.info).toHaveBeenCalledTimes(8);
       expect(core.setOutput).toHaveBeenCalledWith('aws-account-id', '111111111111');
       expect(core.setOutput).toHaveBeenCalledTimes(2);
       expect(core.setSecret).toHaveBeenCalledWith('STSAWSACCESSKEYID');
@@ -113,7 +116,7 @@ describe('Configure AWS Credentials', {}, () => {
       expect(core.setOutput).toHaveBeenCalledWith('aws-account-id', '111111111111');
       expect(core.setOutput).toHaveBeenCalledTimes(2);
       expect(core.info).toHaveBeenCalledWith('Proceeding with IAM user credentials');
-      expect(core.info).toHaveBeenCalledOnce();
+      expect(core.info).toHaveBeenCalledTimes(6);
       expect(core.setFailed).not.toHaveBeenCalled();
     });
   });
@@ -148,7 +151,7 @@ describe('Configure AWS Credentials', {}, () => {
       expect(core.setOutput).toHaveBeenCalledTimes(4);
       expect(core.info).toHaveBeenCalledWith('Assuming role with user credentials');
       expect(core.info).toHaveBeenCalledWith('Authenticated as assumedRoleId AROAFAKEASSUMEDROLEID');
-      expect(core.info).toHaveBeenCalledTimes(2);
+      expect(core.info).toHaveBeenCalledTimes(7);
     });
   });
 
@@ -188,7 +191,7 @@ describe('Configure AWS Credentials', {}, () => {
       await run();
       expect(core.info).toHaveBeenCalledWith('Assuming role with web identity token file');
       expect(core.info).toHaveBeenCalledWith('Authenticated as assumedRoleId AROAFAKEASSUMEDROLEID');
-      expect(core.info).toHaveBeenCalledTimes(2);
+      expect(core.info).toHaveBeenCalledTimes(7);
       expect(core.exportVariable).toHaveBeenCalledWith('AWS_DEFAULT_REGION', 'fake-region-1');
       expect(core.exportVariable).toHaveBeenCalledWith('AWS_REGION', 'fake-region-1');
       expect(core.exportVariable).toHaveBeenCalledWith('AWS_ACCESS_KEY_ID', 'STSAWSACCESSKEYID');
@@ -231,7 +234,7 @@ describe('Configure AWS Credentials', {}, () => {
       await run();
       expect(core.info).toHaveBeenCalledWith('Assuming role with user credentials');
       expect(core.info).toHaveBeenCalledWith('Authenticated as assumedRoleId AROAFAKEASSUMEDROLEID');
-      expect(core.info).toHaveBeenCalledTimes(2);
+      expect(core.info).toHaveBeenCalledTimes(7);
       expect(core.exportVariable).toHaveBeenCalledWith('AWS_DEFAULT_REGION', 'fake-region-1');
       expect(core.exportVariable).toHaveBeenCalledWith('AWS_REGION', 'fake-region-1');
       expect(core.exportVariable).toHaveBeenCalledWith('AWS_ACCESS_KEY_ID', 'STSAWSACCESSKEYID');
@@ -264,7 +267,7 @@ describe('Configure AWS Credentials', {}, () => {
       await run();
       expect(core.info).toHaveBeenCalledWith('Assuming role with user credentials');
       expect(core.info).toHaveBeenCalledWith('Authenticated as assumedRoleId AROAFAKEASSUMEDROLEID');
-      expect(core.info).toHaveBeenCalledTimes(2);
+      expect(core.info).toHaveBeenCalledTimes(7);
       expect(core.exportVariable).toHaveBeenCalledWith('AWS_DEFAULT_REGION', 'fake-region-1');
       expect(core.exportVariable).toHaveBeenCalledWith('AWS_REGION', 'fake-region-1');
       expect(core.exportVariable).toHaveBeenCalledWith('AWS_ACCESS_KEY_ID', 'STSAWSACCESSKEYID');

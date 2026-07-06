@@ -1,0 +1,18 @@
+{
+   "schema_version": "1",
+   "onboarding_type": "copied",
+   "archived": false,
+   "maintained_action_name": "step-security/configure-aws-credentials",
+   "upstream_full_repo_name": "aws-actions/configure-aws-credentials",
+   "action_type": "node",
+   "last_release": {
+     "tag_name": "v6.2.1",
+     "created_at": "2026-06-29T09:44:19Z",
+     "published_at": "2026-06-29T15:26:50Z"
+   },
+   "sync": {
+     "ignore_presets": [
+       "defaults_v1"
+     ]
+   }
+ }

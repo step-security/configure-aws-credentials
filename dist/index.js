@@ -56091,7 +56091,7 @@ var require_errors2 = __commonJS({
         Object.setPrototypeOf(this, MalformedPolicyDocumentException2.prototype);
       }
     };
-    exports2.PackedPolicyTooLargeException = class PackedPolicyTooLargeException3 extends __BaseException {
+    exports2.PackedPolicyTooLargeException = class PackedPolicyTooLargeException2 extends __BaseException {
       name = "PackedPolicyTooLargeException";
       $fault = "client";
       constructor(opts) {
@@ -56100,7 +56100,7 @@ var require_errors2 = __commonJS({
           $fault: "client",
           ...opts
         });
-        Object.setPrototypeOf(this, PackedPolicyTooLargeException3.prototype);
+        Object.setPrototypeOf(this, PackedPolicyTooLargeException2.prototype);
       }
     };
     exports2.RegionDisabledException = class RegionDisabledException2 extends __BaseException {
@@ -56331,7 +56331,7 @@ var require_schemas_0 = __commonJS({
     var _wITT = "webIdentityTokenType";
     var n05 = "com.amazonaws.sts";
     var { TypeRegistry: TypeRegistry2 } = (init_schema(), __toCommonJS(schema_exports));
-    var { ExpiredTokenException: ExpiredTokenException3, ExpiredTradeInTokenException, IDPCommunicationErrorException: IDPCommunicationErrorException2, IDPRejectedClaimException: IDPRejectedClaimException2, InvalidAuthorizationMessageException, InvalidIdentityTokenException: InvalidIdentityTokenException2, JWTPayloadSizeExceededException, MalformedPolicyDocumentException: MalformedPolicyDocumentException2, OutboundWebIdentityFederationDisabledException, PackedPolicyTooLargeException: PackedPolicyTooLargeException3, RegionDisabledException: RegionDisabledException2, SessionDurationEscalationException } = require_errors2();
+    var { ExpiredTokenException: ExpiredTokenException3, ExpiredTradeInTokenException, IDPCommunicationErrorException: IDPCommunicationErrorException2, IDPRejectedClaimException: IDPRejectedClaimException2, InvalidAuthorizationMessageException, InvalidIdentityTokenException: InvalidIdentityTokenException2, JWTPayloadSizeExceededException, MalformedPolicyDocumentException: MalformedPolicyDocumentException2, OutboundWebIdentityFederationDisabledException, PackedPolicyTooLargeException: PackedPolicyTooLargeException2, RegionDisabledException: RegionDisabledException2, SessionDurationEscalationException } = require_errors2();
     var { STSServiceException: STSServiceException2 } = require_STSServiceException();
     var _s_registry5 = TypeRegistry2.for(_s5);
     var STSServiceException$2 = [-3, _s5, "STSServiceException", 0, [], []];
@@ -56437,7 +56437,7 @@ var require_schemas_0 = __commonJS({
       [0]
     ];
     exports2.PackedPolicyTooLargeException$ = PackedPolicyTooLargeException$2;
-    n0_registry5.registerError(PackedPolicyTooLargeException$2, PackedPolicyTooLargeException3);
+    n0_registry5.registerError(PackedPolicyTooLargeException$2, PackedPolicyTooLargeException2);
     var RegionDisabledException$2 = [
       -3,
       n05,
@@ -89589,7 +89589,7 @@ async function assumeRoleWithCredentials(params, client) {
     const creds = await client.send(new import_client_sts2.AssumeRoleCommand({ ...params }));
     return creds;
   } catch (error3) {
-    if (error3 instanceof import_client_sts2.PackedPolicyTooLargeException) {
+    if (error3?.name === "PackedPolicyTooLargeException") {
       info("Session tag size is too large; dropping droppable tags and retrying.");
       const droppableKeys = new Set(DROPPABLE_TAG_SOURCES.map((s) => s.key));
       params.Tags = params.Tags?.filter((tag2) => !droppableKeys.has(tag2.Key ?? ""));

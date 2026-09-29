@@ -71,7 +71,9 @@ const ROLE_SESSION_NAME_REGEX = /^[\w+=,.@-]*$/;
 export async function run() {
   try {
     await validateSubscription();
-    translateEnvVariables();
+    if (getBooleanInput('translate-env-variables', { required: false, default: true })) {
+      translateEnvVariables();
+    }
     // Get inputs
     // Undefined inputs are empty strings ( or empty arrays)
     const AccessKeyId = core.getInput('aws-access-key-id', { required: false });

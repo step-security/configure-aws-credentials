@@ -104,6 +104,26 @@ describe('Configure AWS Credentials helpers', {}, () => {
     expect(process.env.HTTP_PROXY).toBe('https://proxy:8080');
   });
 
+  it('logs which environment variables it translates', {}, () => {
+    delete process.env['INPUT_ROLE-TO-ASSUME'];
+    process.env.ROLE_TO_ASSUME = 'arn:aws:iam::111111111111:role/ENV-ROLE';
+    helpers.translateEnvVariables();
+    expect(core.info).toHaveBeenCalledWith('Translating ROLE_TO_ASSUME to input role-to-assume');
+    expect(process.env['INPUT_ROLE-TO-ASSUME']).toBe('arn:aws:iam::111111111111:role/ENV-ROLE');
+    delete process.env.ROLE_TO_ASSUME;
+    delete process.env['INPUT_ROLE-TO-ASSUME'];
+  });
+
+  it('does not overwrite explicitly set inputs with environment variables', {}, () => {
+    process.env['INPUT_ROLE-TO-ASSUME'] = 'arn:aws:iam::111111111111:role/EXPLICIT-ROLE';
+    process.env.ROLE_TO_ASSUME = 'arn:aws:iam::111111111111:role/ENV-ROLE';
+    helpers.translateEnvVariables();
+    expect(process.env['INPUT_ROLE-TO-ASSUME']).toBe('arn:aws:iam::111111111111:role/EXPLICIT-ROLE');
+    expect(core.info).not.toHaveBeenCalledWith('Translating ROLE_TO_ASSUME to input role-to-assume');
+    delete process.env.ROLE_TO_ASSUME;
+    delete process.env['INPUT_ROLE-TO-ASSUME'];
+  });
+
   it('handles getBooleanInput correctly', {}, () => {
     vi.spyOn(core, 'getInput').mockReturnValue('true');
     expect(helpers.getBooleanInput('test')).toBe(true);
@@ -124,6 +144,45 @@ describe('Configure AWS Credentials helpers', {}, () => {
     process.env.AWS_SESSION_TOKEN = 'old-token';
     helpers.exportCredentials({ AccessKeyId: 'test', SecretAccessKey: 'test' }, false, true);
     expect(core.exportVariable).toHaveBeenCalledWith('AWS_SESSION_TOKEN', '');
+  });
+
+  describe('maskProxyCredentials', {}, () => {
+    it('masks username and password embedded in a proxy URL', {}, () => {
+      helpers.maskProxyCredentials('http://user:secretpass@proxy.example.com:8080');
+      expect(core.setSecret).toHaveBeenCalledWith('user');
+      expect(core.setSecret).toHaveBeenCalledWith('secretpass');
+    });
+
+    it('masks both encoded and decoded forms of the credentials', {}, () => {
+      helpers.maskProxyCredentials('http://user:p%40ss@proxy.example.com:8080');
+      expect(core.setSecret).toHaveBeenCalledWith('p%40ss');
+      expect(core.setSecret).toHaveBeenCalledWith('p@ss');
+    });
+
+    it('masks the whole value even without embedded credentials or when unparseable', {}, () => {
+      helpers.maskProxyCredentials('http://proxy.example.com:8080');
+      expect(core.setSecret).toHaveBeenCalledWith('http://proxy.example.com:8080');
+      helpers.maskProxyCredentials('not a url');
+      expect(core.setSecret).toHaveBeenCalledWith('not a url');
+      // no username/password parts, so exactly one mask per call
+      expect(core.setSecret).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('validateAccountId', {}, () => {
+    it('enforces the allow-list even when the first element is empty', {}, () => {
+      expect(() => helpers.validateAccountId(['', '999999999999'], '111111111111')).toThrow(/does not match/);
+    });
+
+    it('passes an allowed account despite empty entries in the list', {}, () => {
+      expect(() => helpers.validateAccountId(['', '111111111111'], '111111111111')).not.toThrow();
+    });
+
+    it('skips validation only when no non-empty entries exist', {}, () => {
+      expect(() => helpers.validateAccountId(undefined, '111111111111')).not.toThrow();
+      expect(() => helpers.validateAccountId([], '111111111111')).not.toThrow();
+      expect(() => helpers.validateAccountId([''], '111111111111')).not.toThrow();
+    });
   });
 
   describe('filesystem helpers', {}, () => {

@@ -120,6 +120,38 @@ describe('Configure AWS Credentials', {}, () => {
     });
   });
 
+  describe('Environment variable translation', {}, () => {
+    beforeEach(() => {
+      mockedSTSClient.on(GetCallerIdentityCommand).resolvesOnce({ ...mocks.outputs.GET_CALLER_IDENTITY });
+      // biome-ignore lint/suspicious/noExplicitAny: any required to mock private method
+      vi.spyOn(CredentialsClient.prototype as any, 'loadCredentials').mockResolvedValueOnce({
+        accessKeyId: 'MYAWSACCESSKEYID',
+      });
+      delete process.env['INPUT_ROLE-TO-ASSUME'];
+      process.env.ROLE_TO_ASSUME = 'arn:aws:iam::111111111111:role/ENV-ROLE';
+    });
+    afterEach(() => {
+      delete process.env.ROLE_TO_ASSUME;
+      delete process.env['INPUT_ROLE-TO-ASSUME'];
+    });
+    it('translates environment variables to inputs by default', async () => {
+      vi.mocked(core.getInput).mockImplementation(mocks.getInput(mocks.IAM_USER_INPUTS));
+      await run();
+      expect(core.info).toHaveBeenCalledWith('Translating ROLE_TO_ASSUME to input role-to-assume');
+      expect(process.env['INPUT_ROLE-TO-ASSUME']).toBe('arn:aws:iam::111111111111:role/ENV-ROLE');
+      expect(core.setFailed).not.toHaveBeenCalled();
+    });
+    it('skips translation when translate-env-variables is false', async () => {
+      vi.mocked(core.getInput).mockImplementation(
+        mocks.getInput({ ...mocks.IAM_USER_INPUTS, 'translate-env-variables': 'false' }),
+      );
+      await run();
+      expect(core.info).not.toHaveBeenCalledWith('Translating ROLE_TO_ASSUME to input role-to-assume');
+      expect(process.env['INPUT_ROLE-TO-ASSUME']).toBeUndefined();
+      expect(core.setFailed).not.toHaveBeenCalled();
+    });
+  });
+
   describe('AssumeRole with IAM LTC', {}, () => {
     beforeEach(() => {
       vi.mocked(core.getInput).mockImplementation(mocks.getInput(mocks.IAM_ASSUMEROLE_INPUTS));
@@ -844,7 +876,7 @@ describe('Configure AWS Credentials', {}, () => {
 
       await run();
       expect(core.setFailed).toHaveBeenCalledWith(
-        'The account ID of the provided credentials (111111111111) does not match any of the expected account IDs: 999999999999',
+        'The account ID of the provided credentials does not match any of the allowed account IDs',
       );
     });
 
@@ -864,7 +896,7 @@ describe('Configure AWS Credentials', {}, () => {
 
       await run();
       expect(core.setFailed).toHaveBeenCalledWith(
-        'The account ID of the provided credentials (111111111111) does not match any of the expected account IDs: 999999999999, 888888888888',
+        'The account ID of the provided credentials does not match any of the allowed account IDs',
       );
     });
 
@@ -920,7 +952,7 @@ describe('Configure AWS Credentials', {}, () => {
 
       await run();
       expect(core.setFailed).toHaveBeenCalledWith(
-        'The account ID of the provided credentials (111111111111) does not match any of the expected account IDs: 999999999999',
+        'The account ID of the provided credentials does not match any of the allowed account IDs',
       );
     });
 
@@ -939,7 +971,7 @@ describe('Configure AWS Credentials', {}, () => {
 
       await run();
       expect(core.setFailed).toHaveBeenCalledWith(
-        'The account ID of the provided credentials (111111111111) does not match any of the expected account IDs: 999999999999',
+        'The account ID of the provided credentials does not match any of the allowed account IDs',
       );
     });
 
@@ -959,7 +991,7 @@ describe('Configure AWS Credentials', {}, () => {
 
       await run();
       expect(core.setFailed).toHaveBeenCalledWith(
-        'The account ID of the provided credentials (111111111111) does not match any of the expected account IDs: 999999999999',
+        'The account ID of the provided credentials does not match any of the allowed account IDs',
       );
     });
 
@@ -1016,6 +1048,33 @@ describe('Configure AWS Credentials', {}, () => {
       });
 
       await run();
+      expect(core.setFailed).not.toHaveBeenCalled();
+    });
+
+    it('fails on the use-existing-credentials path when the account is not allowed', async () => {
+      vi.mocked(core.getInput).mockImplementation(
+        mocks.getInput({
+          ...mocks.USE_EXISTING_CREDENTIALS_INPUTS,
+          'allowed-account-ids': '999999999999',
+        }),
+      );
+      mockedSTSClient.on(GetCallerIdentityCommand).resolves({ ...mocks.outputs.GET_CALLER_IDENTITY });
+
+      await run();
+      expect(core.setFailed).toHaveBeenCalledWith(expect.stringContaining('does not match'));
+    });
+
+    it('reuses existing credentials when their account is allowed', async () => {
+      vi.mocked(core.getInput).mockImplementation(
+        mocks.getInput({
+          ...mocks.USE_EXISTING_CREDENTIALS_INPUTS,
+          'allowed-account-ids': '111111111111',
+        }),
+      );
+      mockedSTSClient.on(GetCallerIdentityCommand).resolves({ ...mocks.outputs.GET_CALLER_IDENTITY });
+
+      await run();
+      expect(core.notice).toHaveBeenCalledWith('Pre-existing credentials are valid. No need to generate new ones.');
       expect(core.setFailed).not.toHaveBeenCalled();
     });
   });
@@ -1241,6 +1300,21 @@ describe('Configure AWS Credentials', {}, () => {
     it('works without proxy configuration', async () => {
       await run();
 
+      expect(core.setFailed).not.toHaveBeenCalled();
+    });
+
+    it('masks credentials embedded in the proxy URL', async () => {
+      vi.mocked(core.getInput).mockImplementation(
+        mocks.getInput({
+          ...mocks.GH_OIDC_INPUTS,
+          'http-proxy': 'http://user:secretpass@proxy.example.com:8080',
+        }),
+      );
+
+      await run();
+
+      expect(core.setSecret).toHaveBeenCalledWith('user');
+      expect(core.setSecret).toHaveBeenCalledWith('secretpass');
       expect(core.setFailed).not.toHaveBeenCalled();
     });
   });

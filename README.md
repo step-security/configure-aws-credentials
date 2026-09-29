@@ -98,9 +98,18 @@ below).
 - Be especially careful about running Actions in non-ephemeral environments, or
   [triggering workflows on `pull_request_target`](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#pull_request_target)
   events.
+- Follow [GitHub's security best practices][gh-security] for using third-party
+  actions.
+- Set `translate-env-variables` to false if the [AWS environment variables][env]
+  or the [action input variables](./README.md#inputs-as-environment-variables)
+  in your runner are set by other processes to prevent unexpected behavior.
 
 [gh-secrets]:
   https://docs.github.com/en/actions/security-guides/encrypted-secrets
+[env]:
+  https://docs.aws.amazon.com/sdkref/latest/guide/settings-reference.html#EVarSettings
+[gh-security]:
+  https://docs.github.com/en/actions/security-guides/security-best-practices-for-github-actions
 
 ## Non-OIDC Authentication Options
 
@@ -190,6 +199,7 @@ detail.
 | action-timeout-s              | Global timeout for the action in seconds. If set to a value greater than 0, the action will fail if it takes longer than this time to complete.                                                                                                                                                                                                                                                                                         | No       |
 | no-proxy                      |  Hosts to skip for the proxy configuration.                                                                                                                                                                                                                                                                                                                                                                                             | No       |
 | sts-endpoint                  | Custom STS endpoint URL. Use this to point to an STS-compatible API (e.g. MinIO, LocalStack) instead of the default AWS STS endpoint for the region.                                                                                                                                                                                                                                                                                    | No       |
+| translate-env-variables       | Whether to translate AWS environment variables to action inputs. Defaults to true. Translating environment variables automatically may cause unexpected behavior if you have other actions that set AWS environment variables.                                                                                                                                                                                                          | No       |
 
 </details>
 
@@ -211,6 +221,15 @@ if desired.
 Sometimes, existing credentials in your runner can get in the way of the
 intended outcome. You can set the `unset-current-credentials` input to `true` to
 work around this issue.
+
+#### Inputs as environment variables
+
+In addition to using action inputs, this action will read environment variables
+to determine its behavior, just like the AWS SDKs do. For example, if you set
+`ROLE_TO_ASSUME` in the environment, the action will use that value as if you
+had set the `role-to-assume` input. This behavior can be disabled with the
+`translate-env-variables` option. The supported list can be found in
+[src/helpers.ts](./src/helpers.ts).
 
 #### Configure named AWS profiles
 
@@ -601,8 +620,9 @@ claims ([1][gh-blog-oidc], [2][sub-claim-custom]).
 
 #### Immutable subject claims
 
-Repositories created on github.com on or after 15 July 2026, and older
-repositories that have opted in, emit an [immutable `sub` claim][immutable-sub].
+Repositories created on github.com on or after 15 July 2026, older
+repositories that have opted in, and older repositories that have been renamed
+since 15 July 2026, emit an [immutable `sub` claim][immutable-sub].
 This claim appends the permanent numeric ID of the organization and of the
 repository after each name, separated by `@`, so that a recycled org or
 repository name cannot be used to mint tokens matching a stale trust policy.
